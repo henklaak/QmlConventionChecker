@@ -20,7 +20,7 @@ public:
 class CheckingVisitor : public QQmlJS::AST::Visitor
 {
 public:
-    CheckingVisitor(const QString &code);
+    explicit CheckingVisitor(const QString &code);
     virtual ~CheckingVisitor();
 
     // QQmlJS::AST::Visitor implementation
@@ -41,17 +41,15 @@ public:
     void endVisit(QQmlJS::AST::UiObjectDefinition *) Q_DECL_OVERRIDE;
 
     // CheckingVisitor implementation
+
     bool hasWarnings() const { return !m_warnings.isEmpty(); }
     QStringList getWarnings() const { return m_warnings; }
 
 private:
     QString getCode(const QQmlJS::AST::SourceLocation &a_arg) const;
-    QString indent();
-    QStringList m_warnings;
-
     QString m_code;
-
     QStack<AstContext> m_stack;
+    QStringList m_warnings;
 };
 
 #endif // CHECKINGVISITOR_H
