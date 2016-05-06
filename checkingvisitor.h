@@ -1,5 +1,5 @@
-#ifndef MYVISITOR_H
-#define MYVISITOR_H
+#ifndef CHECKINGVISITOR_H
+#define CHECKINGVISITOR_H
 
 #include <QStack>
 
@@ -9,11 +9,13 @@
 class AstContext
 {
 public:
-    QStringList m_nrProperties;
-    QStringList m_nrFunctions;
-    QStringList m_nrBindings;
-    QStringList m_nrObjects;
+    QStringList m_properties;
+    QStringList m_functions;
+    QStringList m_bindings;
+    QStringList m_objects;
 };
+
+
 
 class CheckingVisitor : public QQmlJS::AST::Visitor
 {
@@ -38,7 +40,7 @@ public:
     bool visit(QQmlJS::AST::UiObjectDefinition * a_arg) Q_DECL_OVERRIDE;
     void endVisit(QQmlJS::AST::UiObjectDefinition *) Q_DECL_OVERRIDE;
 
-    // MyVisitor implementation
+    // CheckingVisitor implementation
     bool hasWarnings() const { return !m_warnings.isEmpty(); }
     QStringList getWarnings() const { return m_warnings; }
 
@@ -52,4 +54,4 @@ private:
     QStack<AstContext> m_stack;
 };
 
-#endif // MYVISITOR_H
+#endif // CHECKINGVISITOR_H
