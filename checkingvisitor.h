@@ -10,11 +10,24 @@
 
 class AstContext
 {
-public:
+private:
     QStringList m_properties;
     QStringList m_functions;
     QStringList m_bindings;
     QStringList m_objects;
+
+    friend class AstStack;
+};
+
+
+
+class AstStack : public QStack<AstContext>
+{
+public:
+    QStringList &properties() { return top().m_properties; }
+    QStringList &functions() { return top().m_functions; }
+    QStringList &bindings() { return top().m_bindings; }
+    QStringList &objects() { return top().m_objects; }
 };
 
 
@@ -53,7 +66,7 @@ private:
     void verifyNoBindingsBeforeFunction(const QString &a_token);
 
     QString m_code;
-    QStack<AstContext> m_stack;
+    AstStack m_stack;
     QStringList m_warnings;
 };
 

@@ -28,7 +28,7 @@ bool CheckingVisitor::visit(QQmlJS::AST::UiPublicMember *a_arg)
 
     verifyNoFunctionsBeforeProperty(token);
 
-    m_stack.top().m_properties.append(token);
+    m_stack.properties().append(token);
     m_stack.push(AstContext());
 
     return true;
@@ -54,7 +54,7 @@ bool CheckingVisitor::visit(QQmlJS::AST::UiSourceElement *a_arg)
 
     verifyNoBindingsBeforeFunction(token);
 
-    m_stack.top().m_functions.append(token);
+    m_stack.functions().append(token);
     m_stack.push(AstContext());
 
     return true;
@@ -76,7 +76,7 @@ bool CheckingVisitor::visit(QQmlJS::AST::UiScriptBinding * a_arg)
 
     verifyNoObjectsBeforeBinding(token);
 
-    m_stack.top().m_bindings.append(token);
+    m_stack.bindings().append(token);
     m_stack.push(AstContext());
 
     return true;
@@ -98,7 +98,7 @@ bool CheckingVisitor::visit(QQmlJS::AST::UiObjectBinding * a_arg)
 
     verifyNoObjectsBeforeBinding(token);
 
-    m_stack.top().m_bindings.append(token);
+    m_stack.bindings().append(token);
     m_stack.push(AstContext());
 
     return true;
@@ -122,7 +122,7 @@ bool CheckingVisitor::visit(QQmlJS::AST::UiObjectDefinition * a_arg)
 
     if (token.at(0).isUpper())
     {
-        m_stack.top().m_objects.append(token);
+        m_stack.objects().append(token);
     }
 
     m_stack.push(AstContext());
@@ -151,7 +151,7 @@ void CheckingVisitor::verifyNoObjectsBeforeBinding(const QString &a_token)
 {
     static QStringList footers = {"states","assignments"};
 
-    QStringList &objects = m_stack.top().m_objects;
+    QStringList &objects = m_stack.objects();
 
     if(!objects.isEmpty() && !footers.contains(a_token))
     {
@@ -168,7 +168,7 @@ void CheckingVisitor::verifyNoObjectsBeforeBinding(const QString &a_token)
 
 void CheckingVisitor::verifyNoFunctionsBeforeProperty(const QString &a_token)
 {
-    QStringList &functions = m_stack.top().m_functions;
+    QStringList &functions = m_stack.functions();
 
     if(!functions.isEmpty())
     {
@@ -203,7 +203,7 @@ static QStringList filterAllowedBindings(const QStringList &a_input)
 void CheckingVisitor::verifyNoBindingsBeforeFunction(const QString &a_token)
 {
     // Discard the bindings that are 'allowed' before functions
-    QStringList bindings = filterAllowedBindings(m_stack.top().m_bindings);
+    QStringList bindings = filterAllowedBindings(m_stack.bindings());
 
     if(!bindings.isEmpty())
     {
