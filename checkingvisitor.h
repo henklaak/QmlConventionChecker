@@ -6,6 +6,8 @@
 #include <private/qqmljsast_p.h>          //QQmlJS::AST::Node
 #include <private/qqmljsastvisitor_p.h>   //QQmlJS::AST::Visitor
 
+
+
 class AstContext
 {
 public:
@@ -24,7 +26,6 @@ public:
     virtual ~CheckingVisitor();
 
     // QQmlJS::AST::Visitor implementation
-
     bool visit(QQmlJS::AST::UiPublicMember * a_arg) Q_DECL_OVERRIDE;
     void endVisit(QQmlJS::AST::UiPublicMember * a_arg) Q_DECL_OVERRIDE;
 
@@ -41,12 +42,16 @@ public:
     void endVisit(QQmlJS::AST::UiObjectDefinition *) Q_DECL_OVERRIDE;
 
     // CheckingVisitor implementation
-
     bool hasWarnings() const { return !m_warnings.isEmpty(); }
     QStringList getWarnings() const { return m_warnings; }
 
 private:
-    QString getCode(const QQmlJS::AST::SourceLocation &a_arg) const;
+    QString getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg);
+
+    void verifyNoObjectsBeforeBinding(const QString &a_token);
+    void verifyNoFunctionsBeforeProperty(const QString &a_token);
+    void verifyNoBindingsBeforeFunction(const QString &a_token);
+
     QString m_code;
     QStack<AstContext> m_stack;
     QStringList m_warnings;

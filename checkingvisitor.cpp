@@ -1,5 +1,8 @@
 #include "checkingvisitor.h"
 
+
+
+/**************************************************************************************************/
 CheckingVisitor::CheckingVisitor(const QString &code)
     : QQmlJS::AST::Visitor()
     , m_code(code)
@@ -19,20 +22,11 @@ CheckingVisitor::~CheckingVisitor()
 /***************************************************************************************************
  * properties e.g. "property int a"
 ***************************************************************************************************/
-bool CheckingVisitor::visit(QQmlJS::AST::UiPublicMember * a_arg)
+bool CheckingVisitor::visit(QQmlJS::AST::UiPublicMember *a_arg)
 {
-    const QString token(getCode(a_arg->identifierToken));
-    //qDebug() << indent() << "MEMBER" << token;
+    const QString token(a_arg->name.toString());
 
-    if(!m_stack.top().m_functions.isEmpty())
-    {
-        QStringList a = QStringList() << "Functions ("
-                                      << m_stack.top().m_functions
-                                      << ") before property ("
-                                      << token
-                                      << ")";
-        m_warnings.append(a.join(" "));
-    }
+    verifyNoFunctionsBeforeProperty(token);
 
     m_stack.top().m_properties.append(token);
     m_stack.push(AstContext());
@@ -50,23 +44,15 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiPublicMember *)
 /***************************************************************************************************
  * functions
 ***************************************************************************************************/
-bool CheckingVisitor::visit(QQmlJS::AST::UiSourceElement * a_arg)
+bool CheckingVisitor::visit(QQmlJS::AST::UiSourceElement *a_arg)
 {
     QQmlJS::AST::FunctionDeclaration *funDecl =
             dynamic_cast<QQmlJS::AST::FunctionDeclaration *>(a_arg->sourceElement);
     Q_ASSERT(funDecl);
 
-    const QString token(getCode(funDecl->identifierToken));
+    const QString token(funDecl->name.toString());
 
-    if(!m_stack.top().m_bindings.isEmpty())
-    {
-        QStringList a = QStringList() << "Bindings ("
-                                      << m_stack.top().m_bindings
-                                      << ") before function ("
-                                      << token
-                                      << ")";
-        m_warnings.append(a.join(" "));
-    }
+    verifyNoBindingsBeforeFunction(token);
 
     m_stack.top().m_functions.append(token);
     m_stack.push(AstContext());
@@ -86,23 +72,11 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiSourceElement *)
 ***************************************************************************************************/
 bool CheckingVisitor::visit(QQmlJS::AST::UiScriptBinding * a_arg)
 {
-    const QString token(getCode(a_arg->qualifiedId->identifierToken));
+    const QString token(getQualifiedId(a_arg->qualifiedId));
 
-    if(!m_stack.top().m_objects.isEmpty())
-    {
-        QStringList a = QStringList() << "Objects ("
-                                      << m_stack.top().m_objects
-                                      << ") before binding ("
-                                      << token
-                                      << ")";
-        m_warnings.append(a.join(" "));
-    }
+    verifyNoObjectsBeforeBinding(token);
 
-    if (token != "id" && token != "objectName")
-    {
-        m_stack.top().m_bindings.append(token);
-    }
-
+    m_stack.top().m_bindings.append(token);
     m_stack.push(AstContext());
 
     return true;
@@ -120,17 +94,9 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiScriptBinding *)
 ***************************************************************************************************/
 bool CheckingVisitor::visit(QQmlJS::AST::UiObjectBinding * a_arg)
 {
-    const QString token(getCode(a_arg->qualifiedId->identifierToken));
+    const QString token(getQualifiedId(a_arg->qualifiedId));
 
-    if(!m_stack.top().m_objects.isEmpty())
-    {
-        QStringList a = QStringList() << "Objects ("
-                                      << m_stack.top().m_objects
-                                      << ") before binding ("
-                                      << token
-                                      << ")";
-        m_warnings.append(a.join(" "));
-    }
+    verifyNoObjectsBeforeBinding(token);
 
     m_stack.top().m_bindings.append(token);
     m_stack.push(AstContext());
@@ -150,9 +116,11 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiObjectBinding *)
 ***************************************************************************************************/
 bool CheckingVisitor::visit(QQmlJS::AST::UiObjectDefinition * a_arg)
 {
-    const QString token(getCode(a_arg->qualifiedTypeNameId->identifierToken));
+    const QString token(getQualifiedId(a_arg->qualifiedTypeNameId));
 
-    if (token != "anchors")
+    Q_ASSERT(token.length() > 0);
+
+    if (token.at(0).isUpper())
     {
         m_stack.top().m_objects.append(token);
     }
@@ -170,7 +138,80 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiObjectDefinition *)
 
 
 /**************************************************************************************************/
-QString CheckingVisitor::getCode(const QQmlJS::AST::SourceLocation &a_arg) const
+QString CheckingVisitor::getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg)
 {
-    return m_code.mid(a_arg.offset,a_arg.length);
+    if (a_arg->next)
+    {
+        return a_arg->name.toString() + "." + getQualifiedId(a_arg->next);
+    }
+    return a_arg->name.toString();
+}
+
+void CheckingVisitor::verifyNoObjectsBeforeBinding(const QString &a_token)
+{
+    static QStringList footers = {"states","assignments"};
+
+    QStringList &objects = m_stack.top().m_objects;
+
+    if(!objects.isEmpty() && !footers.contains(a_token))
+    {
+        QStringList a = QStringList() << "Objects ("
+                                      << objects
+                                      << ") before binding ("
+                                      << a_token
+                                      << ")";
+        m_warnings.append(a.join(" "));
+    }
+}
+
+
+
+void CheckingVisitor::verifyNoFunctionsBeforeProperty(const QString &a_token)
+{
+    QStringList &functions = m_stack.top().m_functions;
+
+    if(!functions.isEmpty())
+    {
+        QStringList a = QStringList() << "Functions ("
+                                      << functions
+                                      << ") before property ("
+                                      << a_token
+                                      << ")";
+        m_warnings.append(a.join(" "));
+    }
+}
+
+
+
+static QStringList filterAllowedBindings(const QStringList &a_input)
+{
+    static QStringList headers = {"id", "objectName"};
+
+    QStringList output;
+
+    foreach(const QString &input, a_input)
+    {
+        if (!headers.contains(input))
+        {
+            output.append(input);
+        }
+    }
+
+    return output;
+}
+
+void CheckingVisitor::verifyNoBindingsBeforeFunction(const QString &a_token)
+{
+    // Discard the bindings that are 'allowed' before functions
+    QStringList bindings = filterAllowedBindings(m_stack.top().m_bindings);
+
+    if(!bindings.isEmpty())
+    {
+        QStringList a = QStringList() << "Bindings ("
+                                      << bindings
+                                      << ") before function ("
+                                      << a_token
+                                      << ")";
+        m_warnings.append(a.join(" "));
+    }
 }

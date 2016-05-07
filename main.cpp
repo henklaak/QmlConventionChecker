@@ -59,7 +59,7 @@ static bool checkQmlFile(const QString &a_filename)
         {
             qInfo() << "   " << warning.toLatin1().data();
         }
-        qInfo() << endl;
+        qInfo() << "";
     }
 
     return !checkingVisitor.hasWarnings();
@@ -94,7 +94,8 @@ int main(int a_argv, char *a_argc[])
         while (it.hasNext())
         {
             QString filename = it.next();
-            if (!filename.startsWith("tst_"))
+            QFileInfo info(filename);
+            if (!info.baseName().startsWith("tst_"))
             {
                 success &= checkQmlFile(filename);
             }
