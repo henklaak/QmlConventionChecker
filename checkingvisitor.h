@@ -35,7 +35,7 @@ public:
 class CheckingVisitor : public QQmlJS::AST::Visitor
 {
 public:
-    explicit CheckingVisitor(const QString &code);
+    explicit CheckingVisitor();
     virtual ~CheckingVisitor();
 
     // QQmlJS::AST::Visitor implementation
@@ -61,11 +61,13 @@ public:
 private:
     QString getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg);
 
-    void verifyNoObjectsBeforeBinding(const QString &a_token);
-    void verifyNoFunctionsBeforeProperty(const QString &a_token);
-    void verifyNoBindingsBeforeFunction(const QString &a_token);
+    void verifyNoObjectsBeforeBinding(const QString &a_token,
+                                      QQmlJS::AST::SourceLocation &a_location);
+    void verifyNoFunctionsBeforeProperty(const QString &a_token,
+                                         QQmlJS::AST::SourceLocation &a_location);
+    void verifyNoBindingsBeforeFunction(const QString &a_token,
+                                        QQmlJS::AST::SourceLocation &a_location);
 
-    QString m_code;
     AstStack m_stack;
     QStringList m_warnings;
 };

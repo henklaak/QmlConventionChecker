@@ -3,9 +3,8 @@
 
 
 /**************************************************************************************************/
-CheckingVisitor::CheckingVisitor(const QString &code)
+CheckingVisitor::CheckingVisitor()
     : QQmlJS::AST::Visitor()
-    , m_code(code)
 {
     // Start with root context
     m_stack.push(AstContext());
@@ -26,7 +25,7 @@ bool CheckingVisitor::visit(QQmlJS::AST::UiPublicMember *a_arg)
 {
     const QString token(a_arg->name.toString());
 
-    verifyNoFunctionsBeforeProperty(token);
+    verifyNoFunctionsBeforeProperty(token, a_arg->identifierToken);
 
     m_stack.properties().append(token);
     m_stack.push(AstContext());
@@ -52,7 +51,7 @@ bool CheckingVisitor::visit(QQmlJS::AST::UiSourceElement *a_arg)
 
     const QString token(funDecl->name.toString());
 
-    verifyNoBindingsBeforeFunction(token);
+    verifyNoBindingsBeforeFunction(token, funDecl->identifierToken);
 
     m_stack.functions().append(token);
     m_stack.push(AstContext());
@@ -74,7 +73,7 @@ bool CheckingVisitor::visit(QQmlJS::AST::UiScriptBinding * a_arg)
 {
     const QString token(getQualifiedId(a_arg->qualifiedId));
 
-    verifyNoObjectsBeforeBinding(token);
+    verifyNoObjectsBeforeBinding(token, a_arg->qualifiedId->identifierToken);
 
     m_stack.bindings().append(token);
     m_stack.push(AstContext());
@@ -96,7 +95,7 @@ bool CheckingVisitor::visit(QQmlJS::AST::UiObjectBinding * a_arg)
 {
     const QString token(getQualifiedId(a_arg->qualifiedId));
 
-    verifyNoObjectsBeforeBinding(token);
+    verifyNoObjectsBeforeBinding(token, a_arg->qualifiedId->identifierToken);
 
     m_stack.bindings().append(token);
     m_stack.push(AstContext());
@@ -147,7 +146,8 @@ QString CheckingVisitor::getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg)
     return a_arg->name.toString();
 }
 
-void CheckingVisitor::verifyNoObjectsBeforeBinding(const QString &a_token)
+void CheckingVisitor::verifyNoObjectsBeforeBinding(const QString &a_token,
+                                                   QQmlJS::AST::SourceLocation &a_location)
 {
     static QStringList footers = {"states","assignments"};
 
@@ -157,16 +157,18 @@ void CheckingVisitor::verifyNoObjectsBeforeBinding(const QString &a_token)
     {
         QStringList a = QStringList() << "Objects ("
                                       << objects
-                                      << ") before binding ("
+                                      << ") before binding"
                                       << a_token
-                                      << ")";
+                                      << "at line"
+                                      << QString::number(a_location.startLine);
         m_warnings.append(a.join(" "));
     }
 }
 
 
 
-void CheckingVisitor::verifyNoFunctionsBeforeProperty(const QString &a_token)
+void CheckingVisitor::verifyNoFunctionsBeforeProperty(const QString &a_token,
+                                                      QQmlJS::AST::SourceLocation &a_location)
 {
     QStringList &functions = m_stack.functions();
 
@@ -174,9 +176,10 @@ void CheckingVisitor::verifyNoFunctionsBeforeProperty(const QString &a_token)
     {
         QStringList a = QStringList() << "Functions ("
                                       << functions
-                                      << ") before property ("
+                                      << ") before property"
                                       << a_token
-                                      << ")";
+                                      << "at line"
+                                      << QString::number(a_location.startLine);
         m_warnings.append(a.join(" "));
     }
 }
@@ -200,7 +203,8 @@ static QStringList filterAllowedBindings(const QStringList &a_input)
     return output;
 }
 
-void CheckingVisitor::verifyNoBindingsBeforeFunction(const QString &a_token)
+void CheckingVisitor::verifyNoBindingsBeforeFunction(const QString &a_token,
+                                                     QQmlJS::AST::SourceLocation &a_location)
 {
     // Discard the bindings that are 'allowed' before functions
     QStringList bindings = filterAllowedBindings(m_stack.bindings());
@@ -209,9 +213,10 @@ void CheckingVisitor::verifyNoBindingsBeforeFunction(const QString &a_token)
     {
         QStringList a = QStringList() << "Bindings ("
                                       << bindings
-                                      << ") before function ("
+                                      << ") before function"
                                       << a_token
-                                      << ")";
+                                      << "at line"
+                                      << QString::number(a_location.startLine);
         m_warnings.append(a.join(" "));
     }
 }

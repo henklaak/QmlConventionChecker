@@ -48,7 +48,7 @@ static bool checkQmlFile(const QString &a_filename)
     // Check the code
     QQmlJS::AST::UiProgram *program = parser.ast();
 
-    CheckingVisitor checkingVisitor(code);
+    CheckingVisitor checkingVisitor;
     program->accept(&checkingVisitor);
 
     if (checkingVisitor.hasWarnings())
@@ -57,7 +57,7 @@ static bool checkQmlFile(const QString &a_filename)
 
         foreach (const QString &warning, checkingVisitor.getWarnings())
         {
-            qInfo() << "   " << warning.toLatin1().data();
+            qInfo() << "   " << qPrintable(warning);
         }
         qInfo() << "";
     }
