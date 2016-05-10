@@ -39,6 +39,8 @@ public:
     virtual ~CheckingVisitor();
 
     // QQmlJS::AST::Visitor implementation
+    bool preVisit(QQmlJS::AST::Node *) Q_DECL_OVERRIDE;
+
     bool visit(QQmlJS::AST::UiPublicMember * a_arg) Q_DECL_OVERRIDE;
     void endVisit(QQmlJS::AST::UiPublicMember * a_arg) Q_DECL_OVERRIDE;
 
@@ -50,6 +52,9 @@ public:
 
     bool visit(QQmlJS::AST::UiObjectBinding * a_arg) Q_DECL_OVERRIDE;
     void endVisit(QQmlJS::AST::UiObjectBinding * a_arg) Q_DECL_OVERRIDE;
+
+    bool visit(QQmlJS::AST::UiArrayBinding * a_arg) Q_DECL_OVERRIDE;
+    void endVisit(QQmlJS::AST::UiArrayBinding * a_arg) Q_DECL_OVERRIDE;
 
     bool visit(QQmlJS::AST::UiObjectDefinition * a_arg) Q_DECL_OVERRIDE;
     void endVisit(QQmlJS::AST::UiObjectDefinition *) Q_DECL_OVERRIDE;

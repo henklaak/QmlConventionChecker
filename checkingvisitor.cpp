@@ -1,4 +1,4 @@
-#include "checkingvisitor.h"
+#include "checkingvisitor.h"//
 
 
 
@@ -16,6 +16,12 @@ CheckingVisitor::~CheckingVisitor()
     m_stack.pop();
 }
 
+bool CheckingVisitor::preVisit(QQmlJS::AST::Node *a_arg)
+{
+    //qDebug() << a_arg->kind;
+    return true;
+}
+
 
 
 /***************************************************************************************************
@@ -24,6 +30,7 @@ CheckingVisitor::~CheckingVisitor()
 bool CheckingVisitor::visit(QQmlJS::AST::UiPublicMember *a_arg)
 {
     const QString token(a_arg->name.toString());
+    //qDebug() << "UiPublicMember" << token;
 
     verifyNoFunctionsBeforeProperty(token, a_arg->identifierToken);
 
@@ -50,6 +57,7 @@ bool CheckingVisitor::visit(QQmlJS::AST::UiSourceElement *a_arg)
     Q_ASSERT(funDecl);
 
     const QString token(funDecl->name.toString());
+    //qDebug() << "UiSourceElement" << token;
 
     verifyNoBindingsBeforeFunction(token, funDecl->identifierToken);
 
@@ -72,6 +80,7 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiSourceElement *)
 bool CheckingVisitor::visit(QQmlJS::AST::UiScriptBinding * a_arg)
 {
     const QString token(getQualifiedId(a_arg->qualifiedId));
+    //qDebug() << "UiScriptBinding" << token;
 
     verifyNoObjectsBeforeBinding(token, a_arg->qualifiedId->identifierToken);
 
@@ -94,6 +103,7 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiScriptBinding *)
 bool CheckingVisitor::visit(QQmlJS::AST::UiObjectBinding * a_arg)
 {
     const QString token(getQualifiedId(a_arg->qualifiedId));
+    //qDebug() << "UiObjectBinding" << token;
 
     verifyNoObjectsBeforeBinding(token, a_arg->qualifiedId->identifierToken);
 
@@ -111,11 +121,35 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiObjectBinding *)
 
 
 /***************************************************************************************************
+ * object assignments / bindings
+***************************************************************************************************/
+bool CheckingVisitor::visit(QQmlJS::AST::UiArrayBinding * a_arg)
+{
+    const QString token(getQualifiedId(a_arg->qualifiedId));
+    //qDebug() << "UiArrayBinding" << token;
+
+    verifyNoObjectsBeforeBinding(token, a_arg->qualifiedId->identifierToken);
+
+    m_stack.bindings().append(token);
+    m_stack.push(AstContext());
+
+    return true;
+}
+
+void CheckingVisitor::endVisit(QQmlJS::AST::UiArrayBinding *)
+{
+    m_stack.pop();
+}
+
+
+
+/***************************************************************************************************
  * objects e.g. "Item { }"
 ***************************************************************************************************/
 bool CheckingVisitor::visit(QQmlJS::AST::UiObjectDefinition * a_arg)
 {
     const QString token(getQualifiedId(a_arg->qualifiedTypeNameId));
+    //qDebug() << "UiObjectDefinition" << token;
 
     Q_ASSERT(token.length() > 0);
 
@@ -149,7 +183,7 @@ QString CheckingVisitor::getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg)
 void CheckingVisitor::verifyNoObjectsBeforeBinding(const QString &a_token,
                                                    QQmlJS::AST::SourceLocation &a_location)
 {
-    static QStringList footers = {"states","assignments"};
+    static QStringList footers = {"states","transitions"};
 
     QStringList &objects = m_stack.objects();
 
