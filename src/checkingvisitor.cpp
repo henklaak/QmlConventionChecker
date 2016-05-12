@@ -1,10 +1,11 @@
-#include "checkingvisitor.h"//
+#include "checkingvisitor.h"
 
 
 
 /**************************************************************************************************/
-CheckingVisitor::CheckingVisitor()
+CheckingVisitor::CheckingVisitor(const QString &a_filename)
     : QQmlJS::AST::Visitor()
+    , m_filename(a_filename)
 {
     // Start with root context
     m_stack.push(AstContext());
@@ -19,7 +20,6 @@ CheckingVisitor::~CheckingVisitor()
 bool CheckingVisitor::preVisit(QQmlJS::AST::Node *a_arg)
 {
     Q_UNUSED(a_arg);
-    //qDebug() << a_arg->kind;
     return true;
 }
 
@@ -31,11 +31,48 @@ bool CheckingVisitor::preVisit(QQmlJS::AST::Node *a_arg)
 bool CheckingVisitor::visit(QQmlJS::AST::UiPublicMember *a_arg)
 {
     const QString token(a_arg->name.toString());
-    //qDebug() << "UiPublicMember" << token;
 
-    verifyPropertyOrder(token, a_arg->identifierToken);
+    if (!m_stack.top().functions.isEmpty())
+    {
+        QString warning = getLocationString(a_arg->identifierToken) +
+                " error: property " + token +
+                " after functions (" + m_stack.top().functions.join(" ") + ")";
+        m_warnings.append(warning);
+    }
 
-    m_stack.properties().append(token);
+    if (!m_stack.top().bindings.isEmpty())
+    {
+        QString warning = getLocationString(a_arg->identifierToken) +
+                " error: property " + token +
+                " after bindings (" + m_stack.top().bindings.join(" ") + ")";
+        m_warnings.append(warning);
+    }
+
+    if (!m_stack.top().objects.isEmpty())
+    {
+        QString warning = getLocationString(a_arg->identifierToken) +
+                " error: property " + token +
+                " after objects (" + m_stack.top().objects.join(" ") + ")";
+        m_warnings.append(warning);
+    }
+
+    if (m_stack.top().states)
+    {
+        QString warning = getLocationString(a_arg->identifierToken) +
+                " error: property " + token +
+                " after binding (states)";
+        m_warnings.append(warning);
+    }
+
+    if (m_stack.top().transitions)
+    {
+        QString warning = getLocationString(a_arg->identifierToken) +
+                " error: property " + token +
+                " after binding (transitions)";
+        m_warnings.append(warning);
+    }
+
+    m_stack.top().properties.append(token);
     m_stack.push(AstContext());
 
     return true;
@@ -58,11 +95,40 @@ bool CheckingVisitor::visit(QQmlJS::AST::UiSourceElement *a_arg)
     Q_ASSERT(funDecl);
 
     const QString token(funDecl->name.toString());
-    //qDebug() << "UiSourceElement" << token;
 
-    verifyFunctionOrder(token, funDecl->identifierToken);
+    if (!m_stack.top().bindings.isEmpty())
+    {
+        QString warning = getLocationString(funDecl->identifierToken) +
+                " error: function " + token +
+                " after bindings (" + m_stack.top().bindings.join(" ") + ")";
+        m_warnings.append(warning);
+    }
 
-    m_stack.functions().append(token);
+    if (!m_stack.top().objects.isEmpty())
+    {
+        QString warning = getLocationString(funDecl->identifierToken) +
+                " error: function " + token +
+                " after objects (" + m_stack.top().objects.join(" ") + ")";
+        m_warnings.append(warning);
+    }
+
+    if (m_stack.top().states)
+    {
+        QString warning = getLocationString(funDecl->identifierToken) +
+                " error: function " + token +
+                " after binding (states)";
+        m_warnings.append(warning);
+    }
+
+    if (m_stack.top().transitions)
+    {
+        QString warning = getLocationString(funDecl->identifierToken) +
+                " error: function " + token +
+                " after binding (transitions)";
+        m_warnings.append(warning);
+    }
+
+    m_stack.top().functions.append(token);
     m_stack.push(AstContext());
 
     return true;
@@ -81,11 +147,9 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiSourceElement *)
 bool CheckingVisitor::visit(QQmlJS::AST::UiScriptBinding * a_arg)
 {
     const QString token(getQualifiedId(a_arg->qualifiedId));
-    //qDebug() << "UiScriptBinding" << token;
 
-    verifyBindingOrder(token, a_arg->qualifiedId->identifierToken);
+    checkBinding(a_arg->qualifiedId->identifierToken, token);
 
-    m_stack.bindings().append(token);
     m_stack.push(AstContext());
 
     return true;
@@ -104,11 +168,9 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiScriptBinding *)
 bool CheckingVisitor::visit(QQmlJS::AST::UiObjectBinding * a_arg)
 {
     const QString token(getQualifiedId(a_arg->qualifiedId));
-    //qDebug() << "UiObjectBinding" << token;
 
-    verifyBindingOrder(token, a_arg->qualifiedId->identifierToken);
+    checkBinding(a_arg->qualifiedId->identifierToken, token);
 
-    m_stack.bindings().append(token);
     m_stack.push(AstContext());
 
     return true;
@@ -127,11 +189,9 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiObjectBinding *)
 bool CheckingVisitor::visit(QQmlJS::AST::UiArrayBinding * a_arg)
 {
     const QString token(getQualifiedId(a_arg->qualifiedId));
-    //qDebug() << "UiArrayBinding" << token;
 
-    verifyBindingOrder(token, a_arg->qualifiedId->identifierToken);
+    checkBinding(a_arg->qualifiedId->identifierToken, token);
 
-    m_stack.bindings().append(token);
     m_stack.push(AstContext());
 
     return true;
@@ -150,13 +210,28 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiArrayBinding *)
 bool CheckingVisitor::visit(QQmlJS::AST::UiObjectDefinition * a_arg)
 {
     const QString token(getQualifiedId(a_arg->qualifiedTypeNameId));
-    //qDebug() << "UiObjectDefinition" << token;
 
     Q_ASSERT(token.length() > 0);
 
     if (token.at(0).isUpper())
     {
-        m_stack.objects().append(token);
+        if (m_stack.top().states)
+        {
+            QString warning = getLocationString(a_arg->qualifiedTypeNameId->identifierToken) +
+                    " error: object " + token +
+                    " after binding (states)";
+            m_warnings.append(warning);
+        }
+
+        if (m_stack.top().transitions)
+        {
+            QString warning = getLocationString(a_arg->qualifiedTypeNameId->identifierToken) +
+                    " error: object " + token +
+                    " after binding (transitions)";
+            m_warnings.append(warning);
+        }
+
+        m_stack.top().objects.append(token);
     }
 
     m_stack.push(AstContext());
@@ -172,25 +247,6 @@ void CheckingVisitor::endVisit(QQmlJS::AST::UiObjectDefinition *)
 
 
 /**************************************************************************************************/
-static QStringList filterAllowedBindings(const QStringList &a_input)
-{
-    static QStringList headers = {"id", "objectName"};
-
-    QStringList output;
-
-    foreach(const QString &input, a_input)
-    {
-        if (!headers.contains(input))
-        {
-            output.append(input);
-        }
-    }
-
-    return output;
-}
-
-
-
 QString CheckingVisitor::getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg) const
 {
     if (a_arg->next)
@@ -202,103 +258,115 @@ QString CheckingVisitor::getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg) const
 
 
 
-void CheckingVisitor::verifyPropertyOrder(const QString &a_token,
-                                          QQmlJS::AST::SourceLocation &a_location)
+QString CheckingVisitor::getLocationString(const QQmlJS::AST::SourceLocation &a_location) const
 {
-    const QStringList &functions = m_stack.functions();
-
-    if(!functions.isEmpty())
-    {
-        QStringList a = QStringList() << "Functions ("
-                                      << functions
-                                      << ") before property"
-                                      << a_token
-                                      << "at line"
-                                      << QString::number(a_location.startLine);
-        m_warnings.append(a.join(" "));
-    }
-
-    const QStringList &bindings = filterAllowedBindings(m_stack.bindings());
-
-    if(!bindings.isEmpty())
-    {
-        QStringList a = QStringList() << "Bindings ("
-                                      << bindings
-                                      << ") before property"
-                                      << a_token
-                                      << "at line"
-                                      << QString::number(a_location.startLine);
-        m_warnings.append(a.join(" "));
-    }
-
-    const QStringList &objects = m_stack.objects();
-
-    if(!objects.isEmpty())
-    {
-        QStringList a = QStringList() << "Objects ("
-                                      << objects
-                                      << ") before property"
-                                      << a_token
-                                      << "at line"
-                                      << QString::number(a_location.startLine);
-        m_warnings.append(a.join(" "));
-    }
+    return m_filename +
+            ":" + QString::number(a_location.startLine) +
+            ":" + QString::number(a_location.startColumn);
 }
 
 
-
-void CheckingVisitor::verifyFunctionOrder(const QString &a_token,
-                                          QQmlJS::AST::SourceLocation &a_location)
+void CheckingVisitor::checkBinding(const QQmlJS::AST::SourceLocation &a_arg, const QString &token)
 {
-    // Discard the bindings that are 'allowed' before functions
-    QStringList bindings = filterAllowedBindings(m_stack.bindings());
-
-    if(!bindings.isEmpty())
+    if (token == "id")
     {
-        QStringList a = QStringList() << "Bindings ("
-                                      << bindings
-                                      << ") before function"
-                                      << a_token
-                                      << "at line"
-                                      << QString::number(a_location.startLine);
-        m_warnings.append(a.join(" "));
+        if (m_stack.top().objectName)
+        {
+            QString warning = getLocationString(a_arg) +
+                    " error: binding " + token +
+                    " after binding (objectName)";
+            m_warnings.append(warning);
+        }
+    }
+    if (token == "id" || token == "objectName")
+    {
+        if (!m_stack.top().properties.isEmpty())
+        {
+            QString warning = getLocationString(a_arg) +
+                    " error: binding " + token +
+                    " after properties (" + m_stack.top().properties.join(" ") + ")";
+            m_warnings.append(warning);
+        }
+
+        if (!m_stack.top().functions.isEmpty())
+        {
+            QString warning = getLocationString(a_arg) +
+                    " error: binding " + token +
+                    " after functions (" + m_stack.top().functions.join(" ") + ")";
+            m_warnings.append(warning);
+        }
+
+        if (!m_stack.top().bindings.isEmpty())
+        {
+            QString warning = getLocationString(a_arg) +
+                    " error: binding " + token +
+                    " after bindings (" + m_stack.top().bindings.join(" ") + ")";
+            m_warnings.append(warning);
+        }
     }
 
-    const QStringList &objects = m_stack.objects();
-
-    if(!objects.isEmpty())
+    if (token != "states" && token != "transitions")
     {
-        QStringList a = QStringList() << "Objects ("
-                                      << objects
-                                      << ") before function"
-                                      << a_token
-                                      << "at line"
-                                      << QString::number(a_location.startLine);
-        m_warnings.append(a.join(" "));
+        if (!m_stack.top().objects.isEmpty())
+        {
+            QString warning = getLocationString(a_arg) +
+                    " error: binding " + token +
+                    " after objects (" + m_stack.top().objects.join(" ") + ")";
+            m_warnings.append(warning);
+        }
+
+        if (m_stack.top().states)
+        {
+            QString warning = getLocationString(a_arg) +
+                    " error: binding " + token +
+                    " after binding (states)";
+            m_warnings.append(warning);
+        }
+
+        if (m_stack.top().transitions)
+        {
+            QString warning = getLocationString(a_arg) +
+                    " error: binding " + token +
+                    " after binding (transitions)";
+            m_warnings.append(warning);
+        }
+
+    }
+
+    if (token == "states")
+    {
+        if (m_stack.top().transitions)
+        {
+            QString warning = getLocationString(a_arg) +
+                    " error: binding " + token +
+                    " after binding (transitions)";
+            m_warnings.append(warning);
+        }
+    }
+    if (token == "transitions")
+    {
+        // no extra checks
+    }
+
+    if (token == "id")
+    {
+        m_stack.top().id = true;
+    }
+    else  if (token == "objectName")
+    {
+        m_stack.top().objectName = true;
+    }
+    else  if (token == "states")
+    {
+        m_stack.top().states = true;
+    }
+    else  if (token == "transitions")
+    {
+        m_stack.top().transitions = true;
+    }
+    else
+    {
+        m_stack.top().bindings.append(token);
     }
 }
-
-
-
-void CheckingVisitor::verifyBindingOrder(const QString &a_token,
-                                         QQmlJS::AST::SourceLocation &a_location)
-{
-    static QStringList footers = {"states", "transitions"};
-
-    const QStringList &objects = m_stack.objects();
-
-    if(!objects.isEmpty() && !footers.contains(a_token))
-    {
-        QStringList a = QStringList() << "Objects ("
-                                      << objects
-                                      << ") before binding"
-                                      << a_token
-                                      << "at line"
-                                      << QString::number(a_location.startLine);
-        m_warnings.append(a.join(" "));
-    }
-
-}
-
-
 

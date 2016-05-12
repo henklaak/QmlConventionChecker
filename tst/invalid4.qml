@@ -4,5 +4,6 @@ Item {
 
     foo: 3;
 
-    property int bar;
+    function bla() {
+    }
 }

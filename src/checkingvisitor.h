@@ -10,24 +10,21 @@
 
 class AstContext
 {
-private:
-    QStringList m_properties;
-    QStringList m_functions;
-    QStringList m_bindings;
-    QStringList m_objects;
-
-    friend class AstStack;
+public:
+    bool id;
+    bool objectName;
+    QStringList properties;
+    QStringList functions;
+    QStringList bindings;
+    QStringList objects;
+    bool states;
+    bool transitions;
 };
 
 
 
 class AstStack : public QStack<AstContext>
 {
-public:
-    QStringList &properties() { return top().m_properties; }
-    QStringList &functions() { return top().m_functions; }
-    QStringList &bindings() { return top().m_bindings; }
-    QStringList &objects() { return top().m_objects; }
 };
 
 
@@ -35,7 +32,7 @@ public:
 class CheckingVisitor : public QQmlJS::AST::Visitor
 {
 public:
-    explicit CheckingVisitor();
+    explicit CheckingVisitor(const QString &a_filename);
     virtual ~CheckingVisitor();
 
     // QQmlJS::AST::Visitor implementation
@@ -65,13 +62,13 @@ public:
 
 private:
     QString getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg) const;
+    QString getLocationString(const QQmlJS::AST::SourceLocation &a_location) const;
 
-    void verifyPropertyOrder(const QString &a_token, QQmlJS::AST::SourceLocation &a_location);
-    void verifyFunctionOrder(const QString &a_token, QQmlJS::AST::SourceLocation &a_location);
-    void verifyBindingOrder(const QString &a_token, QQmlJS::AST::SourceLocation &a_location);
+    void checkBinding(const QQmlJS::AST::SourceLocation &a_arg, const QString &token);
 
     AstStack m_stack;
 
+    QString m_filename;
     QStringList m_warnings;
 };
 

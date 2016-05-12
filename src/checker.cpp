@@ -50,18 +50,12 @@ bool checkQmlFile(const QString &a_filename, QStringList *a_warnings)
     // Check the code
     QQmlJS::AST::UiProgram *program = parser.ast();
 
-    CheckingVisitor checkingVisitor;
+    CheckingVisitor checkingVisitor(a_filename);
     program->accept(&checkingVisitor);
 
-    if (checkingVisitor.hasWarnings())
+    foreach (const QString &warning, checkingVisitor.getWarnings())
     {
-        qInfo() << a_filename.toLatin1().data();
-
-        foreach (const QString &warning, checkingVisitor.getWarnings())
-        {
-            qInfo() << "   " << qPrintable(warning);
-        }
-        qInfo() << "";
+        qInfo() << qPrintable(warning);
     }
 
     if (a_warnings) {

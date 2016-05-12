@@ -13,6 +13,8 @@ set (CMAKE_AUTOUIC ON)
 
 SET(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic")
+
 add_subdirectory(src)
 add_subdirectory(tst)
 
