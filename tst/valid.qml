@@ -12,6 +12,10 @@ Item {
 
     bar: 3
 
+    hello: Item{}
+
+    there: []
+
     Item { }
 
     states: []
