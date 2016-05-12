@@ -34,16 +34,30 @@ int main(int a_argv, char *a_argc[])
 
     // Do work
     bool success = true;
-    foreach (const QString &dirname, parser.positionalArguments())
+    foreach (const QFileInfo &pathinfo, parser.positionalArguments())
     {
-        QDirIterator it(dirname, QStringList() << "*.qml", QDir::Files, QDirIterator::Subdirectories);
-        while (it.hasNext())
+        if (pathinfo.isDir())
         {
-            QString filename = it.next();
-            QFileInfo info(filename);
-            if (!info.baseName().startsWith("tst_"))
+            QDirIterator it(pathinfo.absoluteFilePath(),
+                            QStringList() << "*.qml",
+                            QDir::Files,
+                            QDirIterator::Subdirectories);
+
+            while (it.hasNext())
             {
-                success &= checkQmlFile(filename);
+                QFileInfo fileinfo(it.next());
+
+                if (!fileinfo.baseName().startsWith("tst_"))
+                {
+                    success &= checkQmlFile(fileinfo.absoluteFilePath());
+                }
+            }
+        }
+        else if (pathinfo.isFile())
+        {
+            if (!pathinfo.baseName().startsWith("tst_"))
+            {
+                success &= checkQmlFile(pathinfo.absoluteFilePath());
             }
         }
     }

@@ -55,7 +55,7 @@ bool checkQmlFile(const QString &a_filename, QStringList *a_warnings)
 
     foreach (const QString &warning, checkingVisitor.getWarnings())
     {
-        qInfo() << qPrintable(warning);
+        qWarning() << qPrintable(warning);
     }
 
     if (a_warnings) {

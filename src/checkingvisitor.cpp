@@ -17,12 +17,6 @@ CheckingVisitor::~CheckingVisitor()
     m_stack.pop();
 }
 
-bool CheckingVisitor::preVisit(QQmlJS::AST::Node *a_arg)
-{
-    Q_UNUSED(a_arg);
-    return true;
-}
-
 
 
 /***************************************************************************************************
@@ -278,6 +272,7 @@ void CheckingVisitor::checkBinding(const QQmlJS::AST::SourceLocation &a_arg, con
             m_warnings.append(warning);
         }
     }
+
     if (token == "id" || token == "objectName")
     {
         if (!m_stack.top().properties.isEmpty())

@@ -36,8 +36,6 @@ public:
     virtual ~CheckingVisitor();
 
     // QQmlJS::AST::Visitor implementation
-    bool preVisit(QQmlJS::AST::Node *) Q_DECL_OVERRIDE;
-
     bool visit(QQmlJS::AST::UiPublicMember * a_arg) Q_DECL_OVERRIDE;
     void endVisit(QQmlJS::AST::UiPublicMember * a_arg) Q_DECL_OVERRIDE;
 
