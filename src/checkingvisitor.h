@@ -3,8 +3,8 @@
 
 #include <QStack>
 
-#include <private/qqmljsast_p.h>          //QQmlJS::AST::Node
-#include <private/qqmljsastvisitor_p.h>   //QQmlJS::AST::Visitor
+#include <5.6.0/QtQml/private/qqmljsast_p.h>          //QQmlJS::AST::Node
+#include <5.6.0/QtQml/private/qqmljsastvisitor_p.h>   //QQmlJS::AST::Visitor
 
 
 
@@ -64,16 +64,14 @@ public:
     QStringList getWarnings() const { return m_warnings; }
 
 private:
-    QString getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg);
+    QString getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg) const;
 
-    void verifyNoObjectsBeforeBinding(const QString &a_token,
-                                      QQmlJS::AST::SourceLocation &a_location);
-    void verifyNoFunctionsBeforeProperty(const QString &a_token,
-                                         QQmlJS::AST::SourceLocation &a_location);
-    void verifyNoBindingsBeforeFunction(const QString &a_token,
-                                        QQmlJS::AST::SourceLocation &a_location);
+    void verifyPropertyOrder(const QString &a_token, QQmlJS::AST::SourceLocation &a_location);
+    void verifyFunctionOrder(const QString &a_token, QQmlJS::AST::SourceLocation &a_location);
+    void verifyBindingOrder(const QString &a_token, QQmlJS::AST::SourceLocation &a_location);
 
     AstStack m_stack;
+
     QStringList m_warnings;
 };
 
