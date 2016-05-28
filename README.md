@@ -6,3 +6,5 @@ Program will report violations of http://doc.qt.io/qt-5/qml-codingconventions.ht
 
 This relies on the Qt 5.6 internal parser.
 
+On a Debian based distribution you can get its headers by installing qtdeclarative5-private-dev.
+
