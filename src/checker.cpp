@@ -6,10 +6,6 @@
 #include <QFileInfo>
 #include <QString>                    // QLatin1String
 
-#include <5.6.0/QtQml/private/qqmljslexer_p.h>    // QQmlJS::Lexer
-#include <5.6.0/QtQml/private/qqmljsengine_p.h>   // QQmlJS::Engine QQmlJS::DiagnosticMessage
-#include <5.6.0/QtQml/private/qqmljsparser_p.h>   // QQmlJS::Parser
-
 #include "checkingvisitor.h"          // CheckingVisitor
 #include "checker.h"
 
