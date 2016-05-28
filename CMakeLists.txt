@@ -13,7 +13,16 @@ set (CMAKE_AUTOUIC ON)
 
 SET(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic")
+add_definitions(-DQT_VERSION_MAJOR=${Qt5_VERSION_MAJOR})
+add_definitions(-DQT_VERSION_MINOR=${Qt5_VERSION_MINOR})
+add_definitions(-DQT_VERSION_PATCH=${Qt5_VERSION_PATCH})
+
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Werror -pedantic")
 
 add_subdirectory(src)
 add_subdirectory(tst)

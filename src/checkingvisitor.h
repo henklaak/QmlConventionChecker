@@ -3,9 +3,7 @@
 
 #include <QStack>
 
-#include <5.6.0/QtQml/private/qqmljsast_p.h>          //QQmlJS::AST::Node
-#include <5.6.0/QtQml/private/qqmljsastvisitor_p.h>   //QQmlJS::AST::Visitor
-
+#include <qmlprivates.h>
 
 
 class AstContext
