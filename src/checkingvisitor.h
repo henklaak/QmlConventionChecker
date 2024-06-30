@@ -3,7 +3,7 @@
 
 #include <QStack>
 
-#include <qmlprivates.h>
+#include "qmlprivates.h"
 
 
 class AstContext
@@ -56,11 +56,13 @@ public:
     bool hasWarnings() const { return !m_warnings.isEmpty(); }
     QStringList getWarnings() const { return m_warnings; }
 
+    void throwRecursionDepthError() override {};
+
 private:
     QString getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg) const;
-    QString getLocationString(const QQmlJS::AST::SourceLocation &a_location) const;
+    QString getLocationString(const QQmlJS::SourceLocation &a_location) const;
 
-    void checkBinding(const QQmlJS::AST::SourceLocation &a_arg, const QString &token);
+    void checkBinding(const QQmlJS::SourceLocation &a_arg, const QString &token);
 
     AstStack m_stack;
 

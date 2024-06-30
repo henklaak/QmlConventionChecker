@@ -1,21 +1,23 @@
-set(unittestname QmlAstUnitTest)
-file(GLOB_RECURSE sources *.cpp *.h *.qml)
+include(CTest)
 
-add_executable(
-    ${unittestname}
-    ${sources})
+qt_add_executable(QmlAstUnitTest)
 
-target_link_libraries(
-    ${unittestname}
-    QmlAstLib)
+target_sources(QmlAstUnitTest
+    PRIVATE
+    QmlAstUnitTest.cpp
+)
 
-qt5_use_modules(
-    ${unittestname}
-    Core Qml Test)
+target_link_libraries(QmlAstUnitTest
+    PRIVATE
+    QmlAstLib
+    Qt6::Core
+    Qt6::Qml
+    Qt6::Test
+)
 
 add_test(
-    NAME ${unittestname}
-    COMMAND ${unittestname}
+    NAME QmlAstUnitTest
+    COMMAND QmlAstUnitTest
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 configure_file(valid.qml ${CMAKE_CURRENT_BINARY_DIR}/valid.qml COPYONLY)

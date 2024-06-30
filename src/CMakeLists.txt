@@ -1,30 +1,44 @@
-set(applicationname QmlAst)
-file(GLOB_RECURSE sources *.cpp *.h)
+qt_add_executable(QmlAst)
 
-#
+target_sources(QmlAst
+    PRIVATE
+    main.cpp
+    checker.cpp checker.h
+    checkingvisitor.cpp checkingvisitor.h
+    qmlprivates.h)
 
-add_executable(
-    ${applicationname}
-    ${sources})
-
-qt5_use_modules(
-    ${applicationname}
-    Core Qml)
+target_include_directories(QmlAst
+    PRIVATE ${Qt6Qml_PRIVATE_INCLUDE_DIRS}
+)
+target_link_libraries(QmlAst
+    PRIVATE
+    Qt6::Core
+    Qt6::Qml)
 
 install(
-    TARGETS ${applicationname}
+    TARGETS QmlAst
     RUNTIME DESTINATION bin)
 
-#
+# Library used to unittest code
 
 add_library(
-    ${applicationname}Lib
-    ${sources})
+    QmlAstLib
+    main.cpp
+    checker.cpp checker.h
+    checkingvisitor.cpp checkingvisitor.h
+    qmlprivates.h)
 
 target_include_directories(
-    ${applicationname}Lib
+    QmlAstLib
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-qt5_use_modules(
-    ${applicationname}Lib
-    Core Qml)
+target_include_directories(QmlAstLib
+    PRIVATE ${Qt6Qml_PRIVATE_INCLUDE_DIRS}
+)
+
+
+target_link_libraries(QmlAstLib
+    PRIVATE
+    Qt6::Core
+    Qt6::Qml)
+

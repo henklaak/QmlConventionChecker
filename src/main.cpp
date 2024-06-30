@@ -32,8 +32,9 @@ int main(int a_argv, char *a_argc[])
 
     // Do work
     bool success = true;
-    foreach (const QFileInfo &pathinfo, parser.positionalArguments())
+    foreach (const QString &argument, parser.positionalArguments())
     {
+        QFileInfo pathinfo(argument);
         if (pathinfo.isDir())
         {
             QDirIterator it(pathinfo.absoluteFilePath(),

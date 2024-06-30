@@ -252,7 +252,7 @@ QString CheckingVisitor::getQualifiedId(QQmlJS::AST::UiQualifiedId *a_arg) const
 
 
 
-QString CheckingVisitor::getLocationString(const QQmlJS::AST::SourceLocation &a_location) const
+QString CheckingVisitor::getLocationString(const QQmlJS::SourceLocation &a_location) const
 {
     return m_filename +
             ":" + QString::number(a_location.startLine) +
@@ -260,7 +260,7 @@ QString CheckingVisitor::getLocationString(const QQmlJS::AST::SourceLocation &a_
 }
 
 
-void CheckingVisitor::checkBinding(const QQmlJS::AST::SourceLocation &a_arg, const QString &token)
+void CheckingVisitor::checkBinding(const QQmlJS::SourceLocation &a_arg, const QString &token)
 {
     if (token == "id")
     {
